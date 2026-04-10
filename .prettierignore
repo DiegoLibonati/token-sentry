@@ -10,18 +10,8 @@ coverage/
 # TypeScript incremental build
 *.tsbuildinfo
 
-# Packaged extension
-*.vsix
-
-# VS Code test runner
-.vscode-test/
-
-# OS files
-.DS_Store
-Thumbs.db
-
-# Environment
-.env
-.env.local
-
+# Lock files
 package-lock.json
+
+# Binary / static assets
+public/

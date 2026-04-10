@@ -1,4 +1,7 @@
-export type Pattern = { pattern: string; flags?: string };
+export interface Pattern {
+  pattern: string;
+  flags?: string;
+}
 
 export type DefaultPatterns = Record<string, Pattern>;
 

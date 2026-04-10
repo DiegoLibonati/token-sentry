@@ -8,16 +8,19 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 
 ## Getting Started
 
-1. Clone the repository with `git clone "repository link"`
-2. Join to `TokenSentry` folder and execute: `npm run install` or `yarn install` in the terminal
-3. Enjoy and write code.
+## Getting Started
 
-## Test extension under development.
+1. Clone the repository
+2. Navigate to the project folder
+3. Execute: `npm install`
+4. Open the project in VS Code
+5. Press `F5` or go to `Run > Start Debugging`
+6. Select one of the available configurations:
+   - **Run Extension (Build once)** — builds once and launches the Extension Development Host
+   - **Run Extension (Watch mode)** — rebuilds on every file save, ideal for active development
+7. In the **Extension Development Host** window, open the Command Palette (`Ctrl+Shift+P`) and run `TokenSentry: Alive`
 
-1. Go to the `Run and Debug` tab or press `Ctrl+Shift+D`.
-2. Run `Run Extension` or press the `F5` key.
-
-NOTE: A new vscode tab will open where you can navigate to another folder and test the extension. You can use the `Command Palette` or open it with `Ctrl+Shift+P`. Enter the keywords: `TokenSentry:` and run the command you want to test.
+NOTE: You can use the Command Palette or open it with Ctrl+Shift+P. Enter the keywords: TokenSentry: and run the command you want to use.
 
 ## Description
 
@@ -38,18 +41,23 @@ TokenSentry is an extension that allows to analyze the files added before or dur
 #### devDependencies
 
 ```
-"@types/jest": "^29.5.14
-"@types/node": "20.x
-"@types/vscode": "^1.99.0
-"@typescript-eslint/eslint-plugin": "^8.28.0
-"@typescript-eslint/parser": "^8.28.0
-"esbuild": "^0.25.10
-"eslint": "^9.23.0
-"jest": "^29.7.0
-"npm-run-all": "^4.1.5
-"ts-jest": "^29.3.2
-"ts-node": "^10.9.2
+"@eslint/js": "^9.0.0"
+"@types/jest": "^29.5.14"
+"@types/node": "20.x"
+"@types/vscode": "^1.99.0"
+"esbuild": "^0.25.10"
+"eslint": "^9.23.0"
+"eslint-config-prettier": "^9.0.0"
+"eslint-plugin-prettier": "^5.0.0"
+"globals": "^15.0.0"
+"husky": "^9.0.0"
+"jest": "^29.7.0"
+"lint-staged": "^15.0.0"
+"prettier": "^3.0.0"
+"ts-jest": "^29.3.2"
+"tsx": "^4.19.3"
 "typescript": "^5.6.3"
+"typescript-eslint": "^8.0.0"
 ```
 
 ## Portfolio Link
@@ -62,16 +70,32 @@ https://github.com/user-attachments/assets/f710b19b-0ed3-4dc8-8481-7b41893482b6
 
 ## Testing
 
-1. Join to `TokenSentry` folder
-2. Execute: `yarn test` or `npm run test`
+1. Navigate to the project folder
+2. Execute: `npm test`
+
+For coverage report:
+
+```bash
+npm run test:coverage
+```
+
+## Security
+
+### npm audit
+
+Check for vulnerabilities in dependencies:
+
+```bash
+npm audit
+```
 
 ## Documentation Extension
 
 ### Version
 
 ```ts
-APP VERSION: 1.0.0
-README UPDATED: 25/09/2025
+APP VERSION: 1.1.0
+README UPDATED: 09/04/2026
 AUTHOR: Diego Libonati
 ```
 
@@ -111,16 +135,34 @@ AUTHOR: Diego Libonati
 
 ### Create a new command
 
-1. You must choose the name of the command in this case it is called `alive`.
-2. Inside the callback you should put the logic of your new command.
+1. Create a file `src/commands/yourCommand.ts`. Separate the implementation function from the registration function.
 
 ```ts
-const disposable1 = vscode.commands.registerCommand("tokensentry.alive", () => {
-  vscode.window.showInformationMessage("Hello world from TokenSentry.");
-});
+import * as vscode from "vscode";
+
+const yourCommand = (): void => {
+  vscode.window.showInformationMessage("Your command output.");
+};
+
+export const registerYourCommand = (): vscode.Disposable => {
+  return vscode.commands.registerCommand(
+    "tokensentry.yourCommand",
+    yourCommand
+  );
+};
 ```
 
-3. In the `package.json` in the `commands` key, add your new command take `alive` as an example.
+2. Register it in `src/extension.ts`.
+
+```ts
+import { registerYourCommand } from "@/commands/yourCommand";
+
+export function activate(context: vscode.ExtensionContext): void {
+  context.subscriptions.push(registerYourCommand());
+}
+```
+
+3. Add the entry in `package.json` under `contributes.commands`.
 
 ```ts
 "commands": [
@@ -131,8 +173,14 @@ const disposable1 = vscode.commands.registerCommand("tokensentry.alive", () => {
     {
     "command": "tokensentry.checkFiles",
     "title": "TokenSentry: Check Files"
+    },
+    {
+    "command": "tokensentry.yourCommand",
+    "title": "TokenSentry: Your Command"
     }
 ],
 ```
 
 ## Known Issues
+
+None at the moment.

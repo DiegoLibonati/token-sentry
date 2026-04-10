@@ -1,15 +1,12 @@
 {
   "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "outDir": "dist",
+    "composite": true,
     "noEmit": false,
+    "rootDir": "src",
+    "outDir": "dist",
     "types": ["node", "vscode"]
   },
-  "include": ["src", ".scripts/build.ts"],
-  "exclude": [
-    "node_modules",
-    "tests",
-    "**/*.test.ts",
-    "**/*.spec.ts"
-  ]
+  "include": ["src"],
+  "exclude": ["node_modules", "dist", "**/*.test.ts", "**/*.spec.ts"]
 }

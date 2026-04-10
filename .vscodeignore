@@ -1,14 +1,32 @@
+# VS Code & test runner
 .vscode/**
 .vscode-test/**
-out/**
-node_modules/**
+
+# Git hooks
+.husky/**
+
+# Source (bundled into dist/ by esbuild)
 src/**
+__tests__/**
+scripts/**
+
+# TypeScript
+tsconfig*.json
+*.tsbuildinfo
+
+# Linting & formatting
+eslint.config.mjs
+jest.config.mjs
+.prettierrc
+.prettierignore
+
+# Docs & meta
 .gitignore
-.yarnrc
-esbuild.js
-vsc-extension-quickstart.md
-**/tsconfig.json
-**/eslint.config.mjs
+
+# Dependencies
+node_modules/**
+
+# Generated
+coverage/**
 **/*.map
 **/*.ts
-**/.vscode-test.*

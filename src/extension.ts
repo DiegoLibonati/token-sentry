@@ -1,13 +1,15 @@
-import * as vscode from "vscode";
+import type * as vscode from "vscode";
 
-import { registerAliveCommand } from "@src/commands/aliveCommand";
-import { registerCheckFilesCommand } from "@src/commands/checkFilesCommand";
+import { registerAliveCommand } from "@/commands/aliveCommand";
+import { registerCheckFilesCommand } from "@/commands/checkFilesCommand";
 
-export function activate(context: vscode.ExtensionContext) {
-  console.log("Congratulations, your “tokensentry” extension is now active.");
+export function activate(context: vscode.ExtensionContext): void {
+  console.log("Congratulations, your 'TokenSentry' extension is now active.");
 
   context.subscriptions.push(registerAliveCommand());
   context.subscriptions.push(registerCheckFilesCommand());
 }
 
-export function deactivate() {}
+export function deactivate(): void {
+  // no-empty-function
+}

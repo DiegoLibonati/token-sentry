@@ -1,1 +1,0 @@
-{"root":["./src/extension.ts","./src/constants/vars.ts","./src/entities/configuration.d.ts","./src/entities/extension.d.ts","./src/helpers/getdirectoriesnamebypath.ts","./src/helpers/getfullpathfile.ts","./src/helpers/isvalidregexpflags.ts","./src/helpers/loadpatterns.ts"],"version":"5.9.2"}
