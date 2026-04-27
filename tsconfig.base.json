@@ -22,10 +22,9 @@
     "exactOptionalPropertyTypes": true,
     "useUnknownInCatchVariables": false,
 
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["src/*"],
-      "@__tests__/*": ["__tests__/*"]
+      "@/*": ["./src/*"],
+      "@__tests__/*": ["./__tests__/*"]
     }
   }
 }

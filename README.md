@@ -1,12 +1,10 @@
-# TokenSentry
+# Token Sentry
 
 ## Educational Purpose
 
 This project was created primarily for **educational and learning purposes**.  
 While it is well-structured and could technically be used in production, it is **not intended for commercialization**.  
 The main goal is to explore and demonstrate best practices, patterns, and technologies in software development.
-
-## Getting Started
 
 ## Getting Started
 
@@ -18,13 +16,41 @@ The main goal is to explore and demonstrate best practices, patterns, and techno
 6. Select one of the available configurations:
    - **Run Extension (Build once)** — builds once and launches the Extension Development Host
    - **Run Extension (Watch mode)** — rebuilds on every file save, ideal for active development
-7. In the **Extension Development Host** window, open the Command Palette (`Ctrl+Shift+P`) and run `TokenSentry: Alive`
+7. In the **Extension Development Host** window, open the Command Palette (`Ctrl+Shift+P`) and run `Token Sentry: Alive`
 
-NOTE: You can use the Command Palette or open it with Ctrl+Shift+P. Enter the keywords: TokenSentry: and run the command you want to use.
+NOTE: You can use the Command Palette or open it with Ctrl+Shift+P. Enter the keywords: Token Sentry: and run the command you want to use.
 
 ## Description
 
-TokenSentry is an extension that allows to analyze the files added before or during the commit to detect that no sensitive data is uploaded.
+**Token Sentry** is a Visual Studio Code extension designed to prevent developers from accidentally committing sensitive data — such as API tokens, personal access tokens, and credentials — into a git repository.
+
+### How it works
+
+When you invoke the **Token Sentry: Check Files** command from the Command Palette (`Ctrl+Shift+P`), the extension queries the git staging area to retrieve the list of files that have been added for commit (`git diff --cached --name-only`). It then reads the content of each staged file and tests it against a set of configurable regex patterns. If any pattern matches a file's content, VS Code displays a warning message identifying the file and the pattern that triggered the alert, giving you the chance to review and remove the sensitive data before pushing it to the remote repository.
+
+### Pattern detection
+
+Token Sentry ships with two built-in default patterns:
+
+- **GitHub Token** — matches tokens with the `ghp_` prefix followed by 36 alphanumeric characters.
+- **GitLab Token** — matches GitLab Personal Access Tokens with the `glpat-` prefix.
+
+Beyond the defaults, you can define any number of **custom patterns** directly in VS Code's `settings.json` under the `token-sentry.customPatterns` key. Each pattern entry requires a regex string and an optional flags field (e.g. `g`, `gi`, `gm`). This makes the extension fully adaptable to any token format used in your stack — AWS access keys, database passwords, internal service credentials, or anything else that follows a recognizable pattern.
+
+### Commands
+
+| Command                     | Description                                                                     |
+| --------------------------- | ------------------------------------------------------------------------------- |
+| `Token Sentry: Alive`       | Health check — confirms the extension is loaded and running.                    |
+| `Token Sentry: Check Files` | Scans all staged files against the configured patterns and reports any matches. |
+
+### Key characteristics
+
+- **Staged-only scanning**: Token Sentry only inspects files already added to the git index. It does not scan the entire working directory or repository history.
+- **Warning, not blocking**: The extension surfaces alerts as VS Code messages but does not prevent the commit from happening. The decision always remains with the developer.
+- **Manual trigger**: The scan is invoked on demand from the Command Palette. There are no background watchers or automatic hooks.
+- **Regex flexibility**: Custom patterns support any valid JavaScript regular expression, including flags, giving you full control over what gets flagged.
+- **Graceful error handling**: Files that cannot be read (binary files, permission issues) are silently skipped so the scan always completes.
 
 ## Technologies used
 
@@ -62,11 +88,7 @@ TokenSentry is an extension that allows to analyze the files added before or dur
 
 ## Portfolio Link
 
-[`https://www.diegolibonati.com.ar/#/project/TokenSentry`](https://www.diegolibonati.com.ar/#/project/TokenSentry)
-
-## Video
-
-https://github.com/user-attachments/assets/f710b19b-0ed3-4dc8-8481-7b41893482b6
+[`https://www.diegolibonati.com.ar/#/project/token-sentry`](https://www.diegolibonati.com.ar/#/project/token-sentry)
 
 ## Testing
 
@@ -104,13 +126,13 @@ AUTHOR: Diego Libonati
 - Patterns are very important in this extension because thanks to these patterns we will be able to detect if there is any sensitive pattern in the content of the files we are going to commit.
 
 1. `defaultPatterns`: The default patterns are patterns that we are going to configure by default in our extension. This should not be touched in PROD but we can add in DEV for PROD.
-2. `customPatterns`: Custom patterns are patterns that we will be able to add in PROD through `settings.json`. We must look for in configuration the keyword: `TokenSentry: `.
+2. `customPatterns`: Custom patterns are patterns that we will be able to add in PROD through `settings.json`. We must look for in configuration the keyword: `Token Sentry: `.
 
 ```ts
 "configuration": {
-    "title": "TokenSentry",
+    "title": "Token Sentry",
     "properties": {
-        "tokenSentry.defaultPatterns": {
+        "token-sentry.defaultPatterns": {
             "type": "object",
             "default": {
                 "GitLab Token": {
@@ -124,7 +146,7 @@ AUTHOR: Diego Libonati
             },
             "description": "Default patterns to detect tokens (do not modify directly)."
         },
-        "tokenSentry.customPatterns": {
+        "token-sentry.customPatterns": {
             "type": "object",
             "default": {},
             "description": "Add your own Regex patterns (e.g. 'My Token': {'pattern': 'my_token_[0-9]{32}', 'flags': 'gi'} - flags key is OPTIONAL)."
@@ -146,7 +168,7 @@ const yourCommand = (): void => {
 
 export const registerYourCommand = (): vscode.Disposable => {
   return vscode.commands.registerCommand(
-    "tokensentry.yourCommand",
+    "token-sentry.yourCommand",
     yourCommand
   );
 };
@@ -167,16 +189,16 @@ export function activate(context: vscode.ExtensionContext): void {
 ```ts
 "commands": [
     {
-    "command": "tokensentry.alive",
-    "title": "TokenSentry: Alive"
+    "command": "token-sentry.alive",
+    "title": "Token Sentry: Alive"
     },
     {
-    "command": "tokensentry.checkFiles",
-    "title": "TokenSentry: Check Files"
+    "command": "token-sentry.checkFiles",
+    "title": "Token Sentry: Check Files"
     },
     {
-    "command": "tokensentry.yourCommand",
-    "title": "TokenSentry: Your Command"
+    "command": "token-sentry.yourCommand",
+    "title": "Token Sentry: Your Command"
     }
 ],
 ```

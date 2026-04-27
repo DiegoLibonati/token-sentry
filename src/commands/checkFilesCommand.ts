@@ -65,5 +65,5 @@ const checkFiles = async (): Promise<void> => {
 };
 
 export const registerCheckFilesCommand = (): vscode.Disposable => {
-  return vscode.commands.registerCommand("tokensentry.checkFiles", checkFiles);
+  return vscode.commands.registerCommand("token-sentry.checkFiles", checkFiles);
 };

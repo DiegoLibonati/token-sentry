@@ -1,25 +1,50 @@
+import * as vscode from "vscode";
+
 import { registerAliveCommand } from "@/commands/aliveCommand";
 
-import { window, commands } from "@__tests__/__mocks__/vscode.mock";
-
 describe("aliveCommand", () => {
-  it("registers command with correct id", () => {
-    registerAliveCommand();
+  describe("registerAliveCommand", () => {
+    it("should register the command with the correct id", () => {
+      registerAliveCommand();
 
-    expect(commands.registerCommand).toHaveBeenCalledWith(
-      "tokensentry.alive",
-      expect.any(Function)
-    );
+      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+        "token-sentry.alive",
+        expect.any(Function)
+      );
+    });
   });
 
-  it("shows information message when command is executed", () => {
-    registerAliveCommand();
+  describe("command execution", () => {
+    it("should show information message when executed", () => {
+      let capturedCallback!: () => void;
+      jest
+        .spyOn(vscode.commands, "registerCommand")
+        .mockImplementation((_id, callback) => {
+          capturedCallback = callback as () => void;
+          return { dispose: jest.fn() } as unknown as vscode.Disposable;
+        });
 
-    const callback = commands.registerCommand.mock.calls[0]![1] as () => void;
-    callback();
+      registerAliveCommand();
+      capturedCallback();
 
-    expect(window.showInformationMessage).toHaveBeenCalledWith(
-      "Hello world from TokenSentry."
-    );
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        "Hello world from Token Sentry."
+      );
+    });
+
+    it("should show information message exactly once when executed", () => {
+      let capturedCallback!: () => void;
+      jest
+        .spyOn(vscode.commands, "registerCommand")
+        .mockImplementation((_id, callback) => {
+          capturedCallback = callback as () => void;
+          return { dispose: jest.fn() } as unknown as vscode.Disposable;
+        });
+
+      registerAliveCommand();
+      capturedCallback();
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledTimes(1);
+    });
   });
 });

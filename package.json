@@ -1,7 +1,7 @@
 {
-  "name": "tokensentry",
-  "displayName": "TokenSentry",
-  "description": "TokenSentry is an extension that allows to analyze the files added before or during the commit to detect that no sensitive data is uploaded.",
+  "name": "token-sentry",
+  "displayName": "Token Sentry",
+  "description": "Token Sentry is a Visual Studio Code extension designed to prevent developers from accidentally committing sensitive data — such as API tokens, personal access tokens, and credentials — into a git repository.",
   "version": "1.1.0",
   "private": true,
   "publisher": "DieLibonati",
@@ -12,7 +12,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/DiegoLibonati/TokenSentry.git"
+    "url": "https://github.com/DiegoLibonati/token-sentry.git"
   },
   "categories": [
     "Other"
@@ -22,18 +22,18 @@
   "contributes": {
     "commands": [
       {
-        "command": "tokensentry.alive",
-        "title": "TokenSentry: Alive"
+        "command": "token-sentry.alive",
+        "title": "Token Sentry: Alive"
       },
       {
-        "command": "tokensentry.checkFiles",
-        "title": "TokenSentry: Check Files"
+        "command": "token-sentry.checkFiles",
+        "title": "Token Sentry: Check Files"
       }
     ],
     "configuration": {
-      "title": "TokenSentry",
+      "title": "Token Sentry",
       "properties": {
-        "tokenSentry.defaultPatterns": {
+        "token-sentry.defaultPatterns": {
           "type": "object",
           "default": {
             "GitLab Token": {
@@ -47,7 +47,7 @@
           },
           "description": "Default patterns to detect tokens (do not modify directly)."
         },
-        "tokenSentry.customPatterns": {
+        "token-sentry.customPatterns": {
           "type": "object",
           "default": {},
           "description": "Add your own Regex patterns (e.g. 'My Token': {'pattern': 'my_token_[0-9]{32}', 'flags': 'gi'} - flags key is OPTIONAL)."

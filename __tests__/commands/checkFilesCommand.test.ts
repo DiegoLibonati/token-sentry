@@ -1,128 +1,246 @@
-import simpleGit from "simple-git";
 import * as fs from "fs";
+import * as vscode from "vscode";
+
+import simpleGit from "simple-git";
 
 import { registerCheckFilesCommand } from "@/commands/checkFilesCommand";
-import { loadPatterns } from "@/helpers/loadPatterns";
-import { getDirectoriesNameByPath } from "@/helpers/getDirectoriesNameByPath";
-import { getFullPathFile } from "@/helpers/getFullPathFile";
 
-import { workspace, window, commands } from "@__tests__/__mocks__/vscode.mock";
+interface MockWorkspace {
+  workspaceFolders: { uri: { fsPath: string } }[] | undefined;
+}
 
-const mockSimpleGit = simpleGit as unknown as jest.Mock;
-const mockReadFile = fs.promises.readFile as jest.Mock;
-const mockLoadPatterns = loadPatterns as jest.Mock;
-const mockGetDirectoriesNameByPath = getDirectoriesNameByPath as jest.Mock;
-const mockGetFullPathFile = getFullPathFile as jest.Mock;
-const mockDiff = jest.fn();
+const mockSimpleGit = simpleGit as jest.MockedFunction<typeof simpleGit>;
+const mockReadFile = fs.promises.readFile as jest.MockedFunction<
+  typeof fs.promises.readFile
+>;
+const mockReaddirSync = fs.readdirSync as jest.MockedFunction<
+  typeof fs.readdirSync
+>;
+const mockWorkspace = vscode.workspace as unknown as MockWorkspace;
+const mockWorkspaceFolder = { uri: { fsPath: "/mock/workspace" } };
 
-jest.mock("simple-git");
-jest.mock("fs", () => ({ promises: { readFile: jest.fn() } }));
-jest.mock("@/helpers/loadPatterns");
-jest.mock("@/helpers/getDirectoriesNameByPath");
-jest.mock("@/helpers/getFullPathFile");
+jest.mock("fs", () => ({
+  promises: { readFile: jest.fn() },
+  readdirSync: jest.fn(),
+}));
+
+jest.mock("simple-git", () => jest.fn());
 
 describe("checkFilesCommand", () => {
-  const getCheckFilesCallback = (): (() => Promise<void>) => {
-    registerCheckFilesCommand();
-    return commands.registerCommand.mock.calls[0]![1] as () => Promise<void>;
-  };
+  let capturedCallback!: () => Promise<void>;
+  let mockGetConfig: jest.Mock;
 
   beforeEach(() => {
-    workspace.workspaceFolders = [{ uri: { fsPath: "/project" } }];
-    mockSimpleGit.mockReturnValue({ diff: mockDiff });
-    mockDiff.mockResolvedValue("file.ts\n");
-    mockLoadPatterns.mockReturnValue({});
-    mockGetDirectoriesNameByPath.mockReturnValue([".git", "src"]);
-    mockGetFullPathFile.mockReturnValue("/project/file.ts");
-    mockReadFile.mockResolvedValue("safe content");
-  });
+    mockWorkspace.workspaceFolders = undefined;
 
-  it("registers command with correct id", () => {
+    mockGetConfig = jest.fn().mockReturnValue({});
+    jest.spyOn(vscode.workspace, "getConfiguration").mockReturnValue({
+      get: mockGetConfig,
+      has: jest.fn(),
+      update: jest.fn(),
+      inspect: jest.fn(),
+    } as unknown as vscode.WorkspaceConfiguration);
+
+    jest
+      .spyOn(vscode.commands, "registerCommand")
+      .mockImplementation((_id, callback) => {
+        capturedCallback = callback as () => Promise<void>;
+        return { dispose: jest.fn() } as unknown as vscode.Disposable;
+      });
+
     registerCheckFilesCommand();
-
-    expect(commands.registerCommand).toHaveBeenCalledWith(
-      "tokensentry.checkFiles",
-      expect.any(Function)
-    );
   });
 
-  it("shows error when workspaceFolders is undefined", async () => {
-    workspace.workspaceFolders = undefined;
-
-    await getCheckFilesCallback()();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(
-      "You are not standing on any folder."
-    );
-  });
-
-  it("shows error when workspaceFolders is empty", async () => {
-    workspace.workspaceFolders = [];
-
-    await getCheckFilesCallback()();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(
-      "You are not standing on any folder."
-    );
-  });
-
-  it("shows error when .git folder is not present", async () => {
-    mockGetDirectoriesNameByPath.mockReturnValue(["src", "node_modules"]);
-
-    await getCheckFilesCallback()();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(
-      "Git is not initialized in this folder."
-    );
-  });
-
-  it("shows error when there are no staged files", async () => {
-    mockDiff.mockResolvedValue("");
-
-    await getCheckFilesCallback()();
-
-    expect(window.showErrorMessage).toHaveBeenCalledWith(
-      "There are no files added to commit."
-    );
-  });
-
-  it("shows warning when a token is detected", async () => {
-    mockLoadPatterns.mockReturnValue({
-      "GitHub Token": /ghp_[A-Za-z0-9]{36}/g,
+  describe("registerCheckFilesCommand", () => {
+    it("should register the command with the correct id", () => {
+      expect(vscode.commands.registerCommand).toHaveBeenCalledWith(
+        "token-sentry.checkFiles",
+        expect.any(Function)
+      );
     });
-    mockReadFile.mockResolvedValue(
-      "const token = 'ghp_AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA';"
-    );
-
-    await getCheckFilesCallback()();
-
-    expect(window.showWarningMessage).toHaveBeenCalledWith(
-      "Potential token detected in file.ts with pattern: GitHub Token."
-    );
   });
 
-  it("shows completion message when no tokens are detected", async () => {
-    mockLoadPatterns.mockReturnValue({
-      "GitHub Token": /ghp_[A-Za-z0-9]{36}/g,
+  describe("workspace validation", () => {
+    it("should show error when no workspace folders are open", async () => {
+      mockWorkspace.workspaceFolders = undefined;
+
+      await capturedCallback();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "You are not standing on any folder."
+      );
     });
-    mockReadFile.mockResolvedValue("const x = 'safe content';");
 
-    await getCheckFilesCallback()();
+    it("should show error when workspace folders array is empty", async () => {
+      mockWorkspace.workspaceFolders = [];
 
-    expect(window.showInformationMessage).toHaveBeenCalledWith(
-      "Analysis successfully completed."
-    );
+      await capturedCallback();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "You are not standing on any folder."
+      );
+    });
+
+    it("should not proceed to git check when no workspace folders", async () => {
+      mockWorkspace.workspaceFolders = undefined;
+
+      await capturedCallback();
+
+      expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+    });
   });
 
-  it("skips a file when readFile throws and continues to completion", async () => {
-    mockLoadPatterns.mockReturnValue({ Token: /secret/ });
-    mockReadFile.mockRejectedValue(new Error("File not found"));
+  describe("git validation", () => {
+    beforeEach(() => {
+      mockWorkspace.workspaceFolders = [mockWorkspaceFolder];
+    });
 
-    await getCheckFilesCallback()();
+    it("should show error when git is not initialized", async () => {
+      mockReaddirSync.mockReturnValue([
+        { isDirectory: (): boolean => true, name: "src" },
+        { isDirectory: (): boolean => false, name: "package.json" },
+      ] as any);
 
-    expect(window.showWarningMessage).not.toHaveBeenCalled();
-    expect(window.showInformationMessage).toHaveBeenCalledWith(
-      "Analysis successfully completed."
-    );
+      await capturedCallback();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "Git is not initialized in this folder."
+      );
+    });
+
+    it("should not proceed to analysis when git is not initialized", async () => {
+      mockReaddirSync.mockReturnValue([] as any);
+
+      await capturedCallback();
+
+      expect(vscode.window.showInformationMessage).not.toHaveBeenCalled();
+    });
+  });
+
+  describe("staged files validation", () => {
+    beforeEach(() => {
+      mockWorkspace.workspaceFolders = [mockWorkspaceFolder];
+      mockReaddirSync.mockReturnValue([
+        { isDirectory: (): boolean => true, name: ".git" },
+        { isDirectory: (): boolean => true, name: "src" },
+      ] as any);
+    });
+
+    it("should show information message when analysis starts", async () => {
+      const mockGitInstance = {
+        diff: jest.fn().mockResolvedValue("src/file.ts\n"),
+      };
+      mockSimpleGit.mockReturnValue(mockGitInstance as any);
+      mockReadFile.mockResolvedValue("const x = 1;" as any);
+
+      await capturedCallback();
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        "Checking for tokens..."
+      );
+    });
+
+    it("should show error when no staged files", async () => {
+      const mockGitInstance = { diff: jest.fn().mockResolvedValue("") };
+      mockSimpleGit.mockReturnValue(mockGitInstance as any);
+
+      await capturedCallback();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "There are no files added to commit."
+      );
+    });
+
+    it("should show error when staged files list contains only newlines", async () => {
+      const mockGitInstance = { diff: jest.fn().mockResolvedValue("\n\n") };
+      mockSimpleGit.mockReturnValue(mockGitInstance as any);
+
+      await capturedCallback();
+
+      expect(vscode.window.showErrorMessage).toHaveBeenCalledWith(
+        "There are no files added to commit."
+      );
+    });
+  });
+
+  describe("token detection", () => {
+    beforeEach(() => {
+      mockWorkspace.workspaceFolders = [mockWorkspaceFolder];
+      mockReaddirSync.mockReturnValue([
+        { isDirectory: (): boolean => true, name: ".git" },
+      ] as any);
+      const mockGitInstance = {
+        diff: jest.fn().mockResolvedValue("src/config.ts\n"),
+      };
+      mockSimpleGit.mockReturnValue(mockGitInstance as any);
+    });
+
+    it("should show warning when a token pattern matches file content", async () => {
+      mockGetConfig.mockImplementation((key: string) => {
+        if (key === "defaultPatterns")
+          return { AWS_KEY: { pattern: "AKIA[A-Z0-9]{16}" } };
+        return {};
+      });
+      mockReadFile.mockResolvedValue(
+        "const key = 'AKIAIOSFODNN7EXAMPLE'" as any
+      );
+
+      await capturedCallback();
+
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        "Potential token detected in src/config.ts with pattern: AWS_KEY."
+      );
+    });
+
+    it("should show completion message when no tokens are found", async () => {
+      mockReadFile.mockResolvedValue("const x = 1; const y = 2;" as any);
+
+      await capturedCallback();
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        "Analysis successfully completed."
+      );
+    });
+
+    it("should continue and complete when a file cannot be read", async () => {
+      mockReadFile.mockRejectedValue(new Error("ENOENT: no such file"));
+
+      await capturedCallback();
+
+      expect(vscode.window.showInformationMessage).toHaveBeenCalledWith(
+        "Analysis successfully completed."
+      );
+    });
+
+    it("should show warning and skip an invalid pattern", async () => {
+      mockGetConfig.mockImplementation((key: string) => {
+        if (key === "defaultPatterns")
+          return { INVALID: { pattern: "[invalid(" } };
+        return {};
+      });
+      mockReadFile.mockResolvedValue("some content" as any);
+
+      await capturedCallback();
+
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledWith(
+        'Token Sentry: invalid pattern skipped — "INVALID".'
+      );
+    });
+
+    it("should break after first matching pattern per file", async () => {
+      mockGetConfig.mockImplementation((key: string) => {
+        if (key === "defaultPatterns")
+          return {
+            PATTERN_A: { pattern: "token_a" },
+            PATTERN_B: { pattern: "token_b" },
+          };
+        return {};
+      });
+      mockReadFile.mockResolvedValue("has token_a and token_b" as any);
+
+      await capturedCallback();
+
+      expect(vscode.window.showWarningMessage).toHaveBeenCalledTimes(1);
+    });
   });
 });

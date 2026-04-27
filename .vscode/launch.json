@@ -2,7 +2,7 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Run TokenSentry (Build once)",
+      "name": "Run Token Sentry (Build once)",
       "type": "extensionHost",
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],
@@ -12,7 +12,7 @@
       "preLaunchTask": "build:extension"
     },
     {
-      "name": "Run TokenSentry (Watch mode)",
+      "name": "Run Token Sentry (Watch mode)",
       "type": "extensionHost",
       "request": "launch",
       "args": ["--extensionDevelopmentPath=${workspaceFolder}"],

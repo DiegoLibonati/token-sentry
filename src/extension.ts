@@ -4,7 +4,7 @@ import { registerAliveCommand } from "@/commands/aliveCommand";
 import { registerCheckFilesCommand } from "@/commands/checkFilesCommand";
 
 export function activate(context: vscode.ExtensionContext): void {
-  console.log("Congratulations, your 'TokenSentry' extension is now active.");
+  console.log("Congratulations, your 'Token Sentry' extension is now active.");
 
   context.subscriptions.push(registerAliveCommand());
   context.subscriptions.push(registerCheckFilesCommand());
