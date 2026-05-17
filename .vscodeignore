@@ -1,32 +1,14 @@
-# VS Code & test runner
-.vscode/**
-.vscode-test/**
+# Ignore everything by default for the package
+**
 
-# Git hooks
-.husky/**
+# Include only what ships to the Marketplace
+!dist/**
+!public/icon.png
+!package.json
+!README.md
+!CHANGELOG.md
+!LICENSE
 
-# Source (bundled into dist/ by esbuild)
-src/**
-__tests__/**
-scripts/**
-
-# TypeScript
-tsconfig*.json
-*.tsbuildinfo
-
-# Linting & formatting
-eslint.config.mjs
-jest.config.mjs
-.prettierrc
-.prettierignore
-
-# Docs & meta
-.gitignore
-
-# Dependencies
-node_modules/**
-
-# Generated
-coverage/**
-**/*.map
-**/*.ts
+# Re-exclude things that slipped past dist/**
+dist/**/*.map
+dist/**/*.ts

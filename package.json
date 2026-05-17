@@ -14,6 +14,17 @@
     "type": "git",
     "url": "https://github.com/DiegoLibonati/token-sentry.git"
   },
+  "license": "MIT",
+  "homepage": "https://github.com/DiegoLibonati/token-sentry#readme",
+  "bugs": {
+    "url": "https://github.com/DiegoLibonati/token-sentry/issues"
+  },
+  "keywords": [
+    "token-sentry",
+    "token",
+    "sentry"
+  ],
+  "qna": "marketplace",
   "categories": [
     "Other"
   ],

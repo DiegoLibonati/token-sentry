@@ -2,7 +2,7 @@
 
 ```ts
 APP VERSION: 1.1.0
-README UPDATED: 10/05/2026
+README UPDATED: 17/05/2026
 AUTHOR: Diego Libonati
 ```
 
@@ -171,13 +171,16 @@ With the dependencies above installed, you can spin up the extension locally in 
 
 1. Clone the repository
 2. Navigate to the project folder
-3. Execute: `npm install`
-4. Open the project in VS Code
-5. Press `F5` or go to `Run > Start Debugging`
-6. Select one of the available configurations:
+3. Make sure you are on the Node version pinned in `.nvmrc` (Node 22). If you use `nvm`, run `nvm use` to switch automatically. Engine compliance is enforced through `.npmrc` (`engine-strict=true`).
+4. Execute: `npm install`
+5. Open the project in VS Code
+6. Press `F5` or go to `Run > Start Debugging`
+7. Select one of the available configurations:
    - **Run Extension (Build once)** — builds once and launches the Extension Development Host
    - **Run Extension (Watch mode)** — rebuilds on every file save, ideal for active development
-7. In the **Extension Development Host** window, open the Command Palette (`Ctrl+Shift+P`) and run `Token Sentry: Alive`
+8. In the **Extension Development Host** window, open the Command Palette (`Ctrl+Shift+P`) and run `Token Sentry: Alive`
+
+The repository also ships an `.editorconfig` file so editors honor the project's whitespace, encoding, and line-ending conventions out of the box. The recommended extension list in `.vscode/extensions.json` will offer to install EditorConfig, Jest, GitHub Actions, and YAML support when you open the project in VS Code.
 
 If you prefer to run the watcher directly from a terminal without launching VS Code's debugger, use:
 
@@ -266,6 +269,115 @@ npm run dev
 
 The build is also wired into `vscode:prepublish`, so it runs automatically before packaging.
 
+### Bundle analysis
+
+When you need to inspect the contents of the production bundle, pass the `--analyze` flag to the build script:
+
+```bash
+tsx scripts/build.ts --production --analyze
+```
+
+This emits a `dist/metafile.json` file alongside the bundle and prints an `esbuild` size breakdown to the console, which is useful for spotting unexpectedly large dependencies before publishing a release.
+
+## Continuous Integration
+
+The repository ships with a **GitHub Actions** pipeline defined in [`.github/workflows/ci.yml`](.github/workflows/ci.yml). It runs automatically on every `push` and `pull_request` targeting the `main` branch. On `push` to `main`, the same workflow continues with two additional jobs that produce an automated release on the VS Code Marketplace.
+
+### Pipeline overview
+
+```
+                      ┌─── PR or push to main ───┐
+                      ▼                          ▼
+┌──────────────────────┐  ┌──────────────────┐  ┌──────────────────┐
+│   lint-and-audit     │─▶│     testing      │─▶│      build       │
+│ eslint · tsc · fmt   │  │  jest --verbose  │  │ esbuild bundle   │
+│       npm audit      │  │                  │  │                  │
+└──────────────────────┘  └──────────────────┘  └──────────────────┘
+                                                          │
+                                       (only on push to main, sequentially)
+                                                          ▼
+                                                ┌──────────────────────┐
+                                                │ check-publish-config │
+                                                │  verify VSCE_PAT     │
+                                                └──────────────────────┘
+                                                          │
+                                                          ▼
+                                                ┌──────────────────────┐
+                                                │  publish-marketplace │
+                                                │ bump · changelog ·   │
+                                                │ tag · vsce publish   │
+                                                └──────────────────────┘
+```
+
+### Validation jobs (run on every PR and push)
+
+1. **`lint-and-audit`** — `npm run lint`, `npm run check-types`, `npm run format:check`, and `npm audit --audit-level=high`.
+2. **`testing`** — `npm run test` (Jest in headless mode against the `vscode` mock).
+3. **`build`** — smoke test that `npm run build` produces a production bundle at `dist/extension.js` via `esbuild`.
+
+### Release jobs (only on push to `main`)
+
+4. **`check-publish-config`** — reads the `VSCE_PAT` repository secret and exposes a boolean output. When the secret is missing (for example on a fresh fork), the publish stage is reported as skipped so the rest of the pipeline still succeeds.
+5. **`publish-marketplace`** — inspects the commits since the latest tag, decides the next SemVer version using [Conventional Commits](#conventional-commits-required-for-releases), generates the changelog section, updates `CHANGELOG.md` and `package.json`, commits and tags the release as `github-actions[bot]`, pushes back to `main`, and finally publishes the extension to the VS Code Marketplace via `npx vsce publish`. The release commit subject is `chore(release): vX.Y.Z [skip release]` so the follow-up push does not re-trigger the workflow.
+
+### Conventional Commits (required for releases)
+
+Commits merged into `main` must follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/) so the pipeline can compute the next version and group the changelog entries.
+
+| Commit prefix | Version bump | Example |
+|---|---|---|
+| `feat:` / `feat(scope):` | **MINOR** | `feat(scan): add JWT detector` |
+| `fix:` / `fix(scope):` | **PATCH** | `fix: skip binary files during scan` |
+| `perf:`, `refactor:`, `docs:`, `build:`, `ci:`, `chore:`, `style:`, `test:` | **PATCH** | `refactor: extract pattern loader` |
+| `feat!:` / `fix!:` or `BREAKING CHANGE:` in the body | **MAJOR** | `feat!: rename token-sentry.scan command` |
+
+When a push contains multiple commits, the highest applicable bump wins (a single `feat:` among many `fix:` triggers a MINOR bump). If you squash-merge PRs, configure the repo to use the PR title as the squash commit message and write the **PR title** following the convention.
+
+### Skipping a release
+
+If you need to push a change to `main` without producing a release (e.g. tweaking job names in the workflow, fixing a typo in the README), append `[skip release]` to the commit message. The validation jobs (lint, test, build) still run; only `check-publish-config` and `publish-marketplace` are skipped.
+
+```bash
+git commit -m "ci: rename build job for clarity [skip release]"
+```
+
+To skip **everything** including validation, use GitHub's standard `[skip ci]` marker instead.
+
+### Where the build outputs live
+
+| Output | Location |
+|---|---|
+| Validation logs (lint, tests) | **Actions** tab on GitHub |
+| Production bundle (`dist/extension.js`) | Ephemeral, inside the runner |
+| Published `.vsix` per version | [Visual Studio Marketplace](https://marketplace.visualstudio.com/) |
+| Version history & notes | [`CHANGELOG.md`](CHANGELOG.md) + git tags |
+
+> **Note:** Token Sentry is published as a VS Code extension, so released artifacts live on the **Visual Studio Marketplace** rather than the GitHub Releases page. The Marketplace listing is the canonical install source for users.
+
+### Repository setup required for releases
+
+For the release jobs to push tags and commits back to `main` and publish the extension, the repository needs:
+
+1. **Settings → Secrets and variables → Actions**: add a `VSCE_PAT` secret containing an Azure DevOps Personal Access Token with `Marketplace > Manage` scope. See [Get a Personal Access Token](https://code.visualstudio.com/api/working-with-extensions/publishing-extension#get-a-personal-access-token).
+2. **Settings → Actions → General → Workflow permissions**: set to *Read and write permissions*.
+3. **Branch protection on `main`**: if enabled, allow the `github-actions[bot]` to bypass the PR requirement, or disable the protection for the bot. Otherwise `publish-marketplace` will fail when pushing the version bump.
+
+### Running the same checks locally
+
+```bash
+# lint-and-audit
+npm run lint
+npm run check-types
+npm run format:check
+npm audit --audit-level=high
+
+# testing
+npm run test
+
+# build
+npm run build
+```
+
 ## Production
 
 With the bundle in place, the extension is ready to be packaged and published to the VS Code Marketplace. Before promoting a new release, make sure you have run the previous stages:
@@ -280,6 +392,10 @@ Then package and publish using `@vscode/vsce`:
 npm run ext:package   # produces a .vsix file
 npm run ext:publish   # publishes to the Marketplace
 ```
+
+The `.vscodeignore` file uses a deny-by-default policy: everything in the repository is excluded from the published package, and only `dist/**`, `public/icon.png`, `package.json`, `README.md`, `CHANGELOG.md`, and `LICENSE` are explicitly allowed. This keeps the published artifact minimal and prevents source files, configuration, or development tooling from leaking into the Marketplace.
+
+In practice, manual `vsce` invocations are only needed for local smoke tests or emergency releases — under normal conditions every push to `main` is published automatically by the [Continuous Integration](#continuous-integration) pipeline.
 
 ## Known Issues
 
